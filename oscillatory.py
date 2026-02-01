@@ -239,19 +239,6 @@ def compute_moment_right_singularity(a: float, b: float, omega: float, k: int,
         return _moment_right_series(a, b, omega, k, n, c, beta)
 
 
-def compute_moment_symmetric_singularity(a: float, b: float, omega: float, k: int,
-                                          n: int, c: int, beta: float) -> complex:
-    """
-    Moment for symmetric weight w(x) = [(x-a)(b-x)]^β, β > -1.
-    
-    This is the special case of the Jacobi weight with α = β.
-    Delegates to the Jacobi ₁F₁ formula which is numerically robust
-    for all signs of γ_k.
-    """
-    return compute_moment_jacobi_weight(a, b, omega, k, n, c,
-                                         alpha_w=beta, beta_w=beta)
-
-
 def compute_moment_jacobi_weight(a: float, b: float, omega: float, k: int,
                                   n: int, c: int, alpha_w: float, beta_w: float) -> complex:
     """
@@ -351,8 +338,6 @@ def _compute_moment(a, b, omega, k, n, c, weight_type, alpha_w, beta_w, shift=0.
             cached = compute_moment_left_singularity(a, b, omega, k, n, c, beta_w)
         elif weight_type == 'right':
             cached = compute_moment_right_singularity(a, b, omega, k, n, c, beta_w)
-        elif weight_type == 'symmetric':
-            cached = compute_moment_symmetric_singularity(a, b, omega, k, n, c, beta_w)
         elif weight_type == 'jacobi':
             cached = compute_moment_jacobi_weight(a, b, omega, k, n, c, alpha_w, beta_w)
         else:
@@ -417,8 +402,6 @@ def compute_reference_integral(func, a, b, omega, weight_type='none',
             w = (x - a) ** beta_w
         elif weight_type == 'right' and x < b:
             w = (b - x) ** beta_w
-        elif weight_type == 'symmetric' and a < x < b:
-            w = ((x - a) * (b - x)) ** beta_w
         elif weight_type == 'jacobi' and a < x < b:
             w = (x - a) ** alpha_w * (b - x) ** beta_w
         return w
@@ -490,8 +473,6 @@ def compute_reference_integral_mpmath(func_str, a, b, omega,
             return (x - a_mp) ** beta_mp if x > a_mp else mpf(0)
         elif weight_type == 'right':
             return (b_mp - x) ** beta_mp if x < b_mp else mpf(0)
-        elif weight_type == 'symmetric':
-            return ((x - a_mp) * (b_mp - x)) ** beta_mp if a_mp < x < b_mp else mpf(0)
         elif weight_type == 'jacobi':
             return ((x - a_mp) ** alpha_mp * (b_mp - x) ** beta_mp
                     if a_mp < x < b_mp else mpf(0))

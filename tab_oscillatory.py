@@ -76,12 +76,11 @@ def oscillatory_integration_tab(app):
     with col_w1:
         weight_type = st.selectbox(
             "Weight w(x)",
-            ['none', 'left', 'right', 'symmetric', 'jacobi'],
+            ['none', 'left', 'right', 'jacobi'],
             format_func=lambda x: {
                 'none': 'w(x) = 1  (no weight)',
                 'left': 'w(x) = (x − xₗ)^β  (left singularity)',
                 'right': 'w(x) = (xᵣ − x)^β  (right singularity)',
-                'symmetric': 'w(x) = [(x − xₗ)(xᵣ − x)]^β  (symmetric)',
                 'jacobi': 'w(x) = (x − xₗ)^α (xᵣ − x)^β  (Jacobi)'
             }[x],
             key="osc_weight_type"
@@ -106,7 +105,7 @@ def oscillatory_integration_tab(app):
                 st.error(f"Cannot parse α = `{alpha_w_str}`")
                 alpha_w = -0.5
         
-        if weight_type in ['left', 'right', 'symmetric', 'jacobi']:
+        if weight_type in ['left', 'right', 'jacobi']:
             beta_w_str = st.text_input(
                 "β (exponent)",
                 value="-1/2",
@@ -120,7 +119,7 @@ def oscillatory_integration_tab(app):
                 beta_w = -0.5
     
     # Validate exponent range
-    if weight_type in ['left', 'right', 'symmetric'] and beta_w <= -1:
+    if weight_type in ['left', 'right'] and beta_w <= -1:
         st.error("β must be > −1 for integrability.")
     if weight_type == 'jacobi':
         if alpha_w <= -1:
@@ -134,7 +133,7 @@ def oscillatory_integration_tab(app):
     except Exception:
         _alpha_latex = str(alpha_w)
     try:
-        _beta_latex = sp.latex(sp.sympify(beta_w_str)) if weight_type in ['left', 'right', 'symmetric', 'jacobi'] else "0"
+        _beta_latex = sp.latex(sp.sympify(beta_w_str)) if weight_type in ['left', 'right', 'jacobi'] else "0"
     except Exception:
         _beta_latex = str(beta_w)
     
@@ -144,8 +143,6 @@ def oscillatory_integration_tab(app):
         st.latex(rf"w(x) = (x - x_\ell)^{{{_beta_latex}}}")
     elif weight_type == 'right':
         st.latex(rf"w(x) = (x_r - x)^{{{_beta_latex}}}")
-    elif weight_type == 'symmetric':
-        st.latex(rf"w(x) = \bigl[(x - x_\ell)(x_r - x)\bigr]^{{{_beta_latex}}}")
     else:
         st.latex(rf"w(x) = (x - x_\ell)^{{{_alpha_latex}}}\,(x_r - x)^{{{_beta_latex}}}")
     
@@ -683,9 +680,12 @@ def oscillatory_integration_tab(app):
 | None | $1$ | Standard oscillatory integral |
 | Left | $(x - x_\ell)^\beta$ | Left endpoint singularity |
 | Right | $(x_r - x)^\beta$ | Right endpoint singularity |
-| Symmetric | $[(x - x_\ell)(x_r - x)]^\beta$ | Both endpoints, equal exponent |
 | Jacobi | $(x - x_\ell)^\alpha\,(x_r - x)^\beta$ | General Jacobi weight |
 """
+        )
+        st.markdown(
+            r"For symmetric singularities $[(x - x_\ell)(x_r - x)]^\beta$, "
+            r"select Jacobi with $\alpha = \beta$."
         )
         
         st.markdown("#### Moment Computation")
@@ -713,11 +713,6 @@ def oscillatory_integration_tab(app):
         )
         st.latex(
             r"{}_1F_1\!\left(1 + \alpha,\; 2 + \alpha + \beta,\; i\gamma_k\right)"
-        )
-        st.markdown(
-            r"**Symmetric weight** $w(x) = [(x - x_\ell)(x_r - x)]^\beta$: "
-            r"this is the special case $\alpha = \beta$ of the Jacobi weight, "
-            r"so the same ${}_1F_1$ formula is used."
         )
         
         st.markdown("#### Moment Cache")
