@@ -627,63 +627,117 @@ def oscillatory_integration_tab(app):
     st.markdown("---")
     
     with st.expander("**About Oscillatory Integration**", expanded=False):
-        st.markdown(r"""
-        ### Method Overview
         
-        This tab computes high-frequency oscillatory integrals using Fourier-based quadrature:
+        st.markdown("#### Method Overview")
+        st.markdown(
+            r"This tab computes high-frequency oscillatory integrals using "
+            r"Fourier-based quadrature with FC extension."
+        )
+        st.latex(
+            r"I = \int_{x_\ell}^{x_r} w(x)\, f(x)\, e^{i\omega x}\, dx "
+            r"\;\approx\; \sum_{k} c_k \cdot W_{\omega,k}"
+        )
+        st.markdown(
+            r"Here $c_k$ are the Fourier coefficients of $f$ obtained via FFT "
+            r"of the FC-extended data, and $W_{\omega,k}$ are analytically computed **moments**."
+        )
         
-        $$I = \int_{x_\ell}^{x_r} w(x)\, f(x)\, e^{i\omega x}\, dx
-        \approx \sum_{k} c_k \cdot W_{\omega,k}$$
+        st.markdown("#### Moment Formula")
+        st.markdown(
+            r"With grid shift $s = 0$ (grid points $x_j = x_\ell + j\,h$), "
+            r"the FC basis function is $\phi_k(x) = e^{2\pi i k (x - x_\ell)/((n+c)\,h)}$ "
+            r"and the moment is"
+        )
+        st.latex(
+            r"W_{\omega,k} = \int_{x_\ell}^{x_r} w(x)\, e^{i\omega x}\,"
+            r"e^{2\pi i k (x - x_\ell)/((n+c)\,h)}\, dx"
+        )
+        st.markdown(
+            r"Substituting $u = (x - x_\ell)/(x_r - x_\ell)$ and writing "
+            r"$L = x_r - x_\ell$, $h = L/n$, the combined phase exponent becomes "
+            r"$i\,\gamma_k\, u$ where"
+        )
+        st.latex(
+            r"\gamma_k = L\,\omega + \frac{2\pi k\, n}{n + c}"
+        )
+        st.markdown(
+            r"With non-zero shift $s$ (grid points $x_j = x_\ell + (j+s)\,h$), "
+            r"the basis picks up a phase factor:"
+        )
+        st.latex(
+            r"W_{\omega,k}^{(s)} = e^{-2\pi i k s/(n+c)} \;\cdot\; W_{\omega,k}^{(0)}"
+        )
+        st.markdown(
+            r"The base moment ($s = 0$) is cached; the shift correction is a cheap multiplication."
+        )
         
-        where:
-        - $c_k$ are the Fourier coefficients of $f$ computed via FFT after FC extension
-        - $W_{\omega,k}$ are the **moments** computed analytically (see below)
+        st.markdown("#### Weight Functions")
+        st.markdown(
+            r"The method supports Jacobi-type weights with exponents $> -1$. "
+            r"Exponents can be entered as symbolic expressions (e.g. `-1/4`, `1/3`)."
+        )
+        st.markdown(
+            r"""
+| Type | Weight $w(x)$ | Use case |
+|:-----|:--------------|:---------|
+| None | $1$ | Standard oscillatory integral |
+| Left | $(x - x_\ell)^\beta$ | Left endpoint singularity |
+| Right | $(x_r - x)^\beta$ | Right endpoint singularity |
+| Symmetric | $[(x - x_\ell)(x_r - x)]^\beta$ | Both endpoints, equal exponent |
+| Jacobi | $(x - x_\ell)^\alpha\,(x_r - x)^\beta$ | General Jacobi weight |
+"""
+        )
         
-        ### Moment Formula
+        st.markdown("#### Moment Computation")
+        st.markdown(
+            r"Moments are evaluated analytically using `mpmath` high-precision arithmetic."
+        )
+        st.markdown(
+            r"**Left singularity** $w(x) = (x - x_\ell)^\beta$: the key integral is"
+        )
+        st.latex(
+            r"\int_0^1 u^\beta\, e^{i\gamma u}\, du "
+            r"= \left(\frac{i}{\gamma}\right)^{\!\beta+1} "
+            r"\gamma\!\left(\beta+1,\, -i\gamma\right)"
+        )
+        st.markdown(
+            r"where $\gamma(a, z) = \Gamma(a) - \Gamma(a, z)$ is the lower incomplete gamma function."
+        )
+        st.markdown(
+            r"**Right singularity** $w(x) = (x_r - x)^\beta$: "
+            r"uses $\gamma(\beta+1,\, i\gamma)$ with an additional factor $e^{i\gamma_k}$."
+        )
+        st.markdown(
+            r"**Jacobi weight** $w(x) = (x - x_\ell)^\alpha (x_r - x)^\beta$: "
+            r"uses the confluent hypergeometric function"
+        )
+        st.latex(
+            r"{}_1F_1\!\left(1 + \alpha,\; 2 + \alpha + \beta,\; i\gamma_k\right)"
+        )
+        st.markdown(
+            r"**Symmetric weight** $w(x) = [(x - x_\ell)(x_r - x)]^\beta$: "
+            r"uses the Bessel function $J_{\nu}(\gamma_k/2)$ with $\nu = 1/2 + \beta$."
+        )
         
-        With grid shift $s = 0$ (grid points at $x_j = x_\ell + jh$), the FC basis is 
-        $\phi_k(x) = e^{2\pi i k (x - x_\ell)/((n+c)h)}$ and the moment is:
+        st.markdown("#### Moment Cache")
+        st.markdown(
+            "Computed moments are stored in a JSON database (`moment_cache.json`) "
+            "so that repeated runs with the same parameters reuse previously computed values. "
+            "The cache persists across sessions. Use the **Clear Cache** button to reset it."
+        )
         
-        $$W_{\omega,k} = \int_{x_\ell}^{x_r} w(x)\, e^{i\omega x}\,
-        e^{2\pi i k (x - x_\ell)/((n+c)h)}\, dx$$
-        
-        With non-zero shift $s$ (grid points at $x_j = x_\ell + (j+s)h$), the basis becomes
-        $\phi_k(x) = e^{2\pi i k (x - x_\ell - sh)/((n+c)h)}$, which introduces a 
-        phase factor:
-        
-        $$W_{\omega,k}^{(s)} = e^{-2\pi i k s/(n+c)} \cdot W_{\omega,k}^{(0)}$$
-        
-        This means the base moment (shift $= 0$) is cached and the shift correction
-        is applied as a cheap multiplication.
-        
-        ### Weight Functions
-        
-        The method supports Jacobi-type weights with exponents $> -1$.
-        Exponents can be entered as symbolic expressions (e.g. `-1/4`, `1/3`):
-        
-        | Type | Function | Use Case |
-        |------|----------|----------|
-        | None | $w(x) = 1$ | Standard oscillatory integral |
-        | Left | $w(x) = (x - x_\ell)^\beta$ | Left endpoint singularity |
-        | Right | $w(x) = (x_r - x)^\beta$ | Right endpoint singularity |
-        | Symmetric | $w(x) = [(x - x_\ell)(x_r - x)]^\beta$ | Both endpoints, equal exponent |
-        | Jacobi | $w(x) = (x - x_\ell)^\alpha (x_r - x)^\beta$ | General Jacobi weight |
-        
-        ### Moment Computation
-        
-        Moments are computed analytically using `mpmath` for accurate special function evaluation:
-        - **Incomplete gamma functions** for left/right singularities
-        - **Confluent hypergeometric function** ${}_{1}F_{1}$ for Jacobi weights
-        - **Bessel functions** for symmetric weights
-        
-        A **moment cache** (persisted to `moment_cache.json`) stores computed moments 
-        to avoid redundant evaluations across runs and sessions.
-        
-        ### Convergence Studies
-        
-        1. **$n$-convergence (fixed $\omega$)**: Shows spectral convergence as grid is refined
-        2. **$\omega$-sweep (fixed $n$)**: Shows error behavior as frequency increases, including the asymptotic convergence rate (slope of $\log(\text{error})$ vs $\log(\omega)$)
-        """)
+        st.markdown("#### Convergence Studies")
+        st.markdown(
+            r"**$n$-convergence (fixed $\omega$):** "
+            r"Refines the grid $n = 2^3, 2^4, \ldots$ at fixed frequency. "
+            r"Shows spectral (exponential) convergence for smooth $f$."
+        )
+        st.markdown(
+            r"**$\omega$-sweep (fixed $n$):** "
+            r"Varies $\omega$ at fixed grid size. Reports the asymptotic convergence rate, "
+            r"i.e. the slope $p$ in $\text{error} \sim \omega^{\,p}$, "
+            r"fitted from the large-$\omega$ portion of the data."
+        )
 
 
 # ==========================================================================
