@@ -716,7 +716,8 @@ def oscillatory_integration_tab(app):
         )
         st.markdown(
             r"**Symmetric weight** $w(x) = [(x - x_\ell)(x_r - x)]^\beta$: "
-            r"uses the Bessel function $J_{\nu}(\gamma_k/2)$ with $\nu = 1/2 + \beta$."
+            r"this is the special case $\alpha = \beta$ of the Jacobi weight, "
+            r"so the same ${}_1F_1$ formula is used."
         )
         
         st.markdown("#### Moment Cache")

@@ -16,7 +16,7 @@ import os
 
 try:
     import mpmath
-    from mpmath import mp, mpf, mpc, gammainc, hyp1f1, besselj, gamma as mp_gamma
+    from mpmath import mp, mpf, mpc, gammainc, hyp1f1, gamma as mp_gamma
     MPMATH_AVAILABLE = True
 except ImportError:
     MPMATH_AVAILABLE = False
@@ -243,47 +243,13 @@ def compute_moment_symmetric_singularity(a: float, b: float, omega: float, k: in
                                           n: int, c: int, beta: float) -> complex:
     """
     Moment for symmetric weight w(x) = [(x-a)(b-x)]^β, β > -1.
-    Uses Bessel function representation.
+    
+    This is the special case of the Jacobi weight with α = β.
+    Delegates to the Jacobi ₁F₁ formula which is numerically robust
+    for all signs of γ_k.
     """
-    L = b - a
-    gamma_k = compute_gamma_k(a, b, omega, k, n, c)
-    phase = np.exp(1j * omega * a)
-    
-    if abs(gamma_k) < 1e-14:
-        prefactor = (L / 2) ** (1 + 2 * beta)
-        integral = np.sqrt(np.pi) * gamma_func(1 + beta) / gamma_func(1.5 + beta)
-        return phase * prefactor * integral
-    
-    if MPMATH_AVAILABLE:
-        mp.dps = 30
-        nu = mpf('0.5') + beta
-        arg = gamma_k / 2
-        
-        prefactor = mp.sqrt(mp.pi) * mp_gamma(1 + beta) * mpf(L) ** (1 + 2 * beta)
-        exp_factor = mp.exp(mpc(0, gamma_k / 2))
-        
-        if gamma_k > 0:
-            power_factor = mpf(gamma_k) ** (-0.5 - beta)
-        else:
-            power_factor = (mpf(abs(gamma_k)) ** (-0.5 - beta)) * mp.exp(
-                mpc(0, -mp.pi * (-0.5 - beta)))
-        
-        bessel_val = besselj(nu, arg)
-        result = prefactor * exp_factor * power_factor * bessel_val
-        return phase * complex(float(result.real), float(result.imag))
-    else:
-        from scipy.special import jv
-        nu = 0.5 + beta
-        arg = gamma_k / 2
-        prefactor = np.sqrt(np.pi) * gamma_func(1 + beta) * L ** (1 + 2 * beta)
-        exp_factor = np.exp(1j * gamma_k / 2)
-        if gamma_k > 0:
-            power_factor = gamma_k ** (-0.5 - beta)
-        else:
-            power_factor = (abs(gamma_k) ** (-0.5 - beta)) * np.exp(
-                -1j * np.pi * (-0.5 - beta))
-        bessel_val = jv(nu, arg)
-        return phase * prefactor * exp_factor * power_factor * bessel_val
+    return compute_moment_jacobi_weight(a, b, omega, k, n, c,
+                                         alpha_w=beta, beta_w=beta)
 
 
 def compute_moment_jacobi_weight(a: float, b: float, omega: float, k: int,
